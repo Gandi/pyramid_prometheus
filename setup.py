@@ -3,7 +3,7 @@ import os
 from setuptools import setup, find_packages
 
 setup(name='pyramid_prometheus',
-      version='0.1',
+      version='0.2',
       description='A tween which exposes basic Pyramid statistics to Prometheus',
       classifiers=[
         "Intended Audience :: Developers",
