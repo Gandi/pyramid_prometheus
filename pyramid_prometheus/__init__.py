@@ -8,7 +8,7 @@ def tween_factory(
         registry,
         prometheus_registry=REGISTRY): # allow override in tests
     settings = registry.settings
-    slow_request_threshold = int(settings.get('prometheus.slow_request_threshold', '1'))
+    slow_request_threshold = float(settings.get('prometheus.slow_request_threshold', '1'))
 
     _pyramid_request_latency = Histogram('pyramid_request_latency', 'Latency of requests', ['route'], registry=prometheus_registry)
     _pyramid_request_total = Counter('pyramid_requests_total', 'HTTP Requests', ['method', 'status'], registry=prometheus_registry)
