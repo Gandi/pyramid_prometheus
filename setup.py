@@ -2,9 +2,13 @@ import os
 
 from setuptools import setup, find_packages
 
+readme = os.path.join(os.path.dirname(__file__), 'README.rst')
+with open(readme, 'r') as f:
+    readme = f.read()
+
 setup(name='pyramid_prometheus',
-      version='0.2',
-      description='A tween which exposes basic Pyramid statistics to Prometheus',
+      version='0.3',
+      description=readme,
       classifiers=[
         "Intended Audience :: Developers",
         "Programming Language :: Python",
