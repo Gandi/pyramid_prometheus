@@ -52,3 +52,12 @@ def test_tween_with_route(config, handler):
     req.matched_route = route
     got_resp = tween(req)
     assert got_resp == req.response
+
+def test_slow_request(config, handler):
+    tween = pyramid_prometheus.tween_factory(handler, config.registry)
+    req = testing.DummyRequest()
+    req.matched_route = None
+    with mock.patch('pyramid_prometheus.time') as time:
+        time.side_effect = [1, 3]
+        got_resp = tween(req)
+    assert got_resp == req.response

@@ -1,27 +1,32 @@
-import time
+from time import time
 
 from prometheus_client import start_http_server, Histogram, Counter
 from pyramid.tweens import EXCVIEW
 
 _pyramid_request_latency = Histogram('pyramid_request_latency', 'Latency of requests', ['route'])
 _pyramid_request_total = Counter('pyramid_requests_total', 'HTTP Requests', ['method', 'route', 'status'])
+_pyramid_slow_requests = Counter('pyramid_slow_requests', 'HTTP Requests', ['route_name', 'url'])
 
 def tween_factory(handler, registry):
+    settings = registry.settings
+    slow_request_threshold = int(settings.get('prometheus.slow_request_threshold', '1'))
     def tween(request):
-        start = time.time()
+        start = time()
         status = '500'
         try:
             response = handler(request)
             status = str(response.status_int)
             return response
         finally:
+            duration = time() - start
             if request.matched_route is None:
                 route_name = ''
             else:
                 route_name = request.matched_route.name
-            label_values = (request.method, route_name, status)
-            _pyramid_request_latency.labels(route_name).observe(time.time() - start)
-            _pyramid_request_total.labels(*label_values).inc()
+            _pyramid_request_latency.labels(route_name).observe(duration)
+            _pyramid_request_total.labels(request.method, route_name, status).inc()
+            if duration > slow_request_threshold:
+                _pyramid_slow_requests.labels(route_name, request.url).inc()
     return tween
 
 
