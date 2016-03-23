@@ -3,16 +3,13 @@ from time import time
 from prometheus_client import start_http_server, Histogram, Counter, REGISTRY
 from pyramid.tweens import EXCVIEW
 
-def tween_factory(
-        handler,
-        registry,
-        prometheus_registry=REGISTRY): # allow override in tests
+_pyramid_request_latency = Histogram('pyramid_request_latency', 'Latency of requests', ['route'])
+_pyramid_request_total = Counter('pyramid_requests_total', 'HTTP Requests', ['method', 'status'])
+_pyramid_slow_requests = Counter('pyramid_slow_requests', 'HTTP Requests', ['route_name', 'url'])
+
+def tween_factory(handler, registry):
     settings = registry.settings
     slow_request_threshold = float(settings.get('prometheus.slow_request_threshold', '1'))
-
-    _pyramid_request_latency = Histogram('pyramid_request_latency', 'Latency of requests', ['route'], registry=prometheus_registry)
-    _pyramid_request_total = Counter('pyramid_requests_total', 'HTTP Requests', ['method', 'status'], registry=prometheus_registry)
-    _pyramid_slow_requests = Counter('pyramid_slow_requests', 'HTTP Requests', ['route_name', 'url'], registry=prometheus_registry)
 
     def tween(request):
         start = time()

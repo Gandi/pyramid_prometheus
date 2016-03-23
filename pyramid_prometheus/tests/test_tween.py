@@ -6,7 +6,7 @@ except ImportError:
     import mock
 import pytest
 from pyramid import testing, urldispatch
-from prometheus_client.core import CollectorRegistry
+from prometheus_client.core import REGISTRY
 
 import pyramid_prometheus
 
@@ -38,12 +38,12 @@ def config(request):
 
 @pytest.fixture
 def prometheus_registry():
-    return CollectorRegistry()
+    return REGISTRY
 
 @pytest.fixture
-def tween_factory(config, handler, prometheus_registry):
+def tween_factory(config, handler):
     def f():
-        return pyramid_prometheus.tween_factory(handler, config.registry, prometheus_registry=prometheus_registry)
+        return pyramid_prometheus.tween_factory(handler, config.registry)
     return f
 
 @mock.patch('pyramid_prometheus.start_http_server')
@@ -68,13 +68,16 @@ def test_tween(config, handler):
     assert got_resp == req.response
 
 def test_tween_with_route(tween_factory, prometheus_registry):
+    # our tests are not totally independent as we use the global registry :(
+    # no easy way to clean it between tests :(
+    current = get_samples(prometheus_registry)['pyramid_requests_total'].get((('method', 'GET'), ('status', '200')), 0.0)
     tween = tween_factory()
     req = testing.DummyRequest()
     route = urldispatch.Route('index_page', '/pattern')
     req.matched_route = route
     got_resp = tween(req)
     assert got_resp == req.response
-    assert get_samples(prometheus_registry)['pyramid_requests_total'] == {(('method', 'GET'), ('status', '200')): 1.0}
+    assert get_samples(prometheus_registry)['pyramid_requests_total'] == {(('method', 'GET'), ('status', '200')): current + 1}
 
 def test_slow_request(tween_factory, prometheus_registry):
     tween = tween_factory()
