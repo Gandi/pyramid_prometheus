@@ -34,6 +34,7 @@ def handler():
 @pytest.fixture
 def config(request):
     config = testing.setUp()
+    config.registry.settings['prometheus.ignore_initial_request_count'] = '0'
     return config
 
 @pytest.fixture
@@ -88,3 +89,19 @@ def test_slow_request(tween_factory, prometheus_registry):
         got_resp = tween(req)
     assert get_samples(prometheus_registry)['pyramid_slow_requests'] == {(('route_name', ''), ('url', 'http://example.com')): 1.0}
     assert got_resp == req.response
+
+def test_skip_initial_requests(tween_factory, prometheus_registry, config):
+    # our tests are not totally independent as we use the global registry :(
+    # no easy way to clean it between tests :(
+    config.registry.settings['prometheus.ignore_initial_request_count'] = '5'
+    current = get_samples(prometheus_registry)['pyramid_requests_total'].get((('method', 'GET'), ('status', '200')), 0.0)
+    tween = tween_factory()
+    req = testing.DummyRequest()
+    route = urldispatch.Route('index_page', '/pattern')
+    req.matched_route = route
+    for i in range(5):
+        got_resp = tween(req)
+    assert get_samples(prometheus_registry)['pyramid_requests_total'] == {(('method', 'GET'), ('status', '200')): current}
+    got_resp = tween(req)
+    assert get_samples(prometheus_registry)['pyramid_requests_total'] == {(('method', 'GET'), ('status', '200')): current + 1}
+
