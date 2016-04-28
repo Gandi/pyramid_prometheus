@@ -7,7 +7,7 @@ with open(readme, 'r') as f:
     readme = f.read()
 
 setup(name='pyramid_prometheus',
-      version='0.5',
+      version='0.6',
       description=readme,
       classifiers=[
         "Intended Audience :: Developers",
