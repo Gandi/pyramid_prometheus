@@ -3,9 +3,11 @@ from time import time
 from prometheus_client import start_http_server, Histogram, Counter, REGISTRY
 from pyramid.tweens import EXCVIEW
 
-_pyramid_request_latency = Histogram('pyramid_request_latency', 'Latency of requests', ['route'])
-_pyramid_request_total = Counter('pyramid_requests_total', 'HTTP Requests', ['method', 'status'])
-_pyramid_slow_requests = Counter('pyramid_slow_requests', 'HTTP Requests', ['route_name', 'url'])
+_pyramid_request = Histogram('pyramid_request', 'HTTP Requests', ['method', 'status'])
+
+_pyramid_route_slow_count = Counter('pyramid_route_slow_count', 'Slow HTTP requests by route', ['route'])
+_pyramid_route_sum = Counter('pyramid_route_sum', 'Sum of time spent processing requests by route', ['route'])
+_pyramid_route_count = Counter('pyramid_route_count', 'Number of requests by route', ['route'])
 
 def tween_factory(handler, registry):
     settings = registry.settings
@@ -30,10 +32,11 @@ def tween_factory(handler, registry):
                     route_name = ''
                 else:
                     route_name = request.matched_route.name
-                _pyramid_request_latency.labels(route_name).observe(duration)
-                _pyramid_request_total.labels(request.method, status).inc()
+                _pyramid_request.labels(request.method, status).observe(duration)
+                _pyramid_route_count.labels(route_name).inc()
+                _pyramid_route_sum.labels(route_name).inc(duration)
                 if duration > slow_request_threshold:
-                    _pyramid_slow_requests.labels(route_name, request.url).inc()
+                    _pyramid_route_slow_count.labels(route_name).inc()
     return tween
 
 

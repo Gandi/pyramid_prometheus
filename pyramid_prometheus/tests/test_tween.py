@@ -71,14 +71,14 @@ def test_tween(config, handler):
 def test_tween_with_route(tween_factory, prometheus_registry):
     # our tests are not totally independent as we use the global registry :(
     # no easy way to clean it between tests :(
-    current = get_samples(prometheus_registry)['pyramid_requests_total'].get((('method', 'GET'), ('status', '200')), 0.0)
+    current = get_samples(prometheus_registry)['pyramid_request_count'].get((('method', 'GET'), ('status', '200')), 0.0)
     tween = tween_factory()
     req = testing.DummyRequest()
     route = urldispatch.Route('index_page', '/pattern')
     req.matched_route = route
     got_resp = tween(req)
     assert got_resp == req.response
-    assert get_samples(prometheus_registry)['pyramid_requests_total'] == {(('method', 'GET'), ('status', '200')): current + 1}
+    assert get_samples(prometheus_registry)['pyramid_request_count'] == {(('method', 'GET'), ('status', '200')): current + 1}
 
 def test_slow_request(tween_factory, prometheus_registry):
     tween = tween_factory()
@@ -87,21 +87,21 @@ def test_slow_request(tween_factory, prometheus_registry):
     with mock.patch('pyramid_prometheus.time') as time:
         time.side_effect = [1, 3]
         got_resp = tween(req)
-    assert get_samples(prometheus_registry)['pyramid_slow_requests'] == {(('route_name', ''), ('url', 'http://example.com')): 1.0}
+    assert get_samples(prometheus_registry)['pyramid_route_slow_count'] == {(('route', ''), ): 1.0}
     assert got_resp == req.response
 
 def test_skip_initial_requests(tween_factory, prometheus_registry, config):
     # our tests are not totally independent as we use the global registry :(
     # no easy way to clean it between tests :(
     config.registry.settings['prometheus.ignore_initial_request_count'] = '5'
-    current = get_samples(prometheus_registry)['pyramid_requests_total'].get((('method', 'GET'), ('status', '200')), 0.0)
+    current = get_samples(prometheus_registry)['pyramid_request_count'].get((('method', 'GET'), ('status', '200')), 0.0)
     tween = tween_factory()
     req = testing.DummyRequest()
     route = urldispatch.Route('index_page', '/pattern')
     req.matched_route = route
     for i in range(5):
         got_resp = tween(req)
-    assert get_samples(prometheus_registry)['pyramid_requests_total'] == {(('method', 'GET'), ('status', '200')): current}
+    assert get_samples(prometheus_registry)['pyramid_request_count'] == {(('method', 'GET'), ('status', '200')): current}
     got_resp = tween(req)
-    assert get_samples(prometheus_registry)['pyramid_requests_total'] == {(('method', 'GET'), ('status', '200')): current + 1}
+    assert get_samples(prometheus_registry)['pyramid_request_count'] == {(('method', 'GET'), ('status', '200')): current + 1}
 
