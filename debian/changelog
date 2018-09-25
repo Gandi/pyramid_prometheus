@@ -1,0 +1,5 @@
+pyramid-prometheus (0.6) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Guillaume Gauvrit <guillaume@gandi.net>  Tue, 25 Sep 2018 09:31:00 +0100
